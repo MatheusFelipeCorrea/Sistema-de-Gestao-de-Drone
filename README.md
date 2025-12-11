@@ -21,7 +21,7 @@ Toda a documentação técnica, manuais de execução e registros do uso de IA e
 * **[Como Rodar o Projeto](./Documents/Rodando%20o%20Projeto/README.md)** (Passo a passo Backend/Frontend e Testes)
 * **[Documentação da API](./Documents/Documentação%20API/README.md)** (Endpoints e Estrutura de Dados)
 * **[IAs Utilizadas](./Documents/IAs%20Utilizadas/README.md)** (Prompts, regras e contexto utilizados)
-* **[Wireframes](./Documents/Wireframes/README.md)** (Desenhos das telas)
+* **[Wireframes](Documents/Wireframes Iniciais/README.md)** (Desenhos das telas)
 
 ---
 Desenvolvido por Matheus Felipe para o Desafio Técnico DTI.
