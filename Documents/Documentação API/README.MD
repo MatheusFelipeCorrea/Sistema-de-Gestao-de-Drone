@@ -1,26 +1,22 @@
-Perfeito\! Manter o padrão de documentação é essencial. Adaptei o seu esboço do "Mercado Digital" para o contexto do **Sistema de Drones**, mantendo exatamente a mesma estrutura visual e nível de detalhe.
 
-Isso deve ser salvo em: **`Documents/Documentação API/README.md`**.
+# 📡 Documentação da API - Sistema de Gestão de Drones
 
------
+Esta é a documentação técnica dos endpoints do backend (`Node.js/Express`), responsável pela simulação logística, regras de negócio e persistência em memória.
 
-# API - Sistema de Gestão de Drones (DTI)
-
-Esta é a documentação para a API do backend do simulador de logística de drones, construída em Node.js com Express.
-
-## Informações Gerais
+## ℹ️ Informações Gerais
 
 * **URL Base:** `http://localhost:3000`
-* **Autenticação:** Nenhuma. API pública para fins de simulação.
-* **Formato dos Dados:** Todas as requisições (`POST`) devem enviar `Content-Type: application/json` e todos os dados no corpo devem ser JSON. Todas as respostas são em JSON.
+* **Autenticação:** Nenhuma (API pública para fins de simulação).
+* **Formato dos Dados:** * Requisições (`POST`): `Content-Type: application/json`.
+    * Respostas: Sempre em formato JSON.
 
------
+---
 
-## Estrutura dos Dados
+## 📦 Estrutura dos Dados
 
-### Objeto de Dashboard (Retorno Principal)
+### 1. Objeto de Dashboard (Retorno Principal)
 
-O endpoint `/dashboard` retorna o estado completo da simulação ("snapshot"), que é consumido pelo frontend a cada 1 segundo. Ele segue esta estrutura:
+O endpoint `/dashboard` retorna o "snapshot" (estado atual) da simulação. O Frontend consome este endpoint a cada 1 segundo (polling).
 
 ```json
 {
@@ -29,18 +25,19 @@ O endpoint `/dashboard` retorna o estado completo da simulação ("snapshot"), q
     "viagens": 5,
     "eficiencia": "100%",
     "droneEficiente": "4562256",
-    "tempoMedio": "2 seg"
+    "tempoMedio": "45 seg"
   },
   "drones": [
     {
       "id": "4562256",
       "status": "EM_VOO",
-      "capacidadeRestante": "8.50",
+      "capacidadeRestante": 8.50,
       "bateria": "Alta",
       "bateriaPercentual": 85,
       "rota": "Próximo ao Destino",
       "lat": -19.9208,
       "lng": -43.9378,
+      "eta": "45 s", 
       "pedidos": []
     }
   ],
@@ -50,7 +47,7 @@ O endpoint `/dashboard` retorna o estado completo da simulação ("snapshot"), q
       "endereco": "Av. Amazonas, 100",
       "peso": 2.5,
       "prioridade": "Alta",
-      "status": "Aguardando"
+      "status": "Em transporte"
     }
   ],
   "historico": [
@@ -58,32 +55,35 @@ O endpoint `/dashboard` retorna o estado completo da simulação ("snapshot"), q
       "id": "uuid-5678",
       "endereco": "Praça da Liberdade",
       "entregueEm": "14:30:00",
+      "tempoTotal": "52s",
       "status": "Concluído"
     }
   ]
 }
-```
+````
 
-### Objeto de Erro
+### 2\. Status Possíveis do Pedido
 
-Quando uma requisição falha (ex: validação de peso), a API retorna:
+O ciclo de vida de um pedido segue este fluxo:
 
-```json
-{
-  "erro": "Peso excede a capacidade máxima do drone (12kg)."
-}
-```
+1.  **`Aguardando`** (Fila de espera)
+2.  **`Em Preparo`** (Separando carga na base)
+3.  **`Carregando`** (Colocando no drone)
+4.  **`Em transporte`** (Drone em voo)
+5.  **`Entregue` / `Concluído`** (Finalizado)
 
 -----
 
-## Endpoints de Pedidos
+## 🚀 Endpoints de Pedidos
 
-Estes endpoints gerenciam a entrada de novas demandas logísticas.
+Gerenciam a entrada de novas demandas logísticas.
 
-### 1\. `POST /pedidos`
+### `POST /pedidos`
 
-* **Propósito:** Cadastra uma nova entrega na fila. O sistema automaticamente tentará alocar este pedido a um drone disponível baseando-se na prioridade.
-* **Validação:** O peso não pode exceder 12kg.
+  * **Propósito:** Cadastra uma nova entrega na fila de prioridade.
+  * **Regras de Negócio:**
+      * Peso máximo: **12kg**.
+      * Campos obrigatórios: Endereço, Coordenadas, Peso.
 
 **Corpo da Requisição (JSON):**
 
@@ -101,7 +101,7 @@ Estes endpoints gerenciam a entrada de novas demandas logísticas.
 }
 ```
 
-* **Resposta de Sucesso (201):**
+  * **Resposta de Sucesso (201 Created):**
 
 <!-- end list -->
 
@@ -110,13 +110,13 @@ Estes endpoints gerenciam a entrada de novas demandas logísticas.
   "mensagem": "Pedido criado e processado.",
   "pedido": {
     "id": "uuid-gerado...",
-    "status": "PENDENTE",
+    "status": "Aguardando",
     ...
   }
 }
 ```
 
-* **Resposta de Erro (400):**
+  * **Resposta de Erro (400 Bad Request):**
 
 <!-- end list -->
 
@@ -128,27 +128,23 @@ Estes endpoints gerenciam a entrada de novas demandas logísticas.
 
 -----
 
-## Endpoints de Monitoramento
+## 📊 Endpoints de Monitoramento
 
-Estes endpoints fornecem dados em tempo real para a interface visual.
+Fornecem dados em tempo real para a interface visual.
 
-### 1\. `GET /dashboard`
+### `GET /dashboard`
 
-* **Propósito:** Retorna o "estado do mundo" da simulação. Inclui posição de todos os drones, nível exato de bateria, fila de espera e histórico.
+  * **Propósito:** Retorna o estado completo da frota, filas e métricas.
 
-* **Frequência:** O Frontend consome este endpoint via *polling* (intervalo de 1 segundo).
+  * **Detalhes:** Inclui o cálculo de **ETA** (Estimativa de Tempo de Chegada) para cada drone e o nível exato de bateria.
 
-* **Corpo da Requisição:** Nenhum.
+  * **Resposta de Sucesso (200 OK):** Retorna o Objeto de Dashboard (ver estrutura acima).
 
-* **Resposta de Sucesso (200):** Retorna o Objeto de Dashboard (ver estrutura acima).
+### `GET /health`
 
-### 2\. `GET /health`
+  * **Propósito:** Health check para verificar se a API está online.
 
-* **Propósito:** Endpoint simples para verificar se o servidor está online.
-
-* **Corpo da Requisição:** Nenhum.
-
-* **Resposta de Sucesso (200):**
+  * **Resposta de Sucesso (200 OK):**
 
 <!-- end list -->
 
@@ -157,4 +153,7 @@ Estes endpoints fornecem dados em tempo real para a interface visual.
   "status": "API Drones Online 🚁",
   "time": "2023-12-10T14:00:00.000Z"
 }
+```
+
+```
 ```
