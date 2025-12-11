@@ -1,4 +1,3 @@
-
 # 📡 Documentação da API - Sistema de Gestão de Drones
 
 Esta é a documentação técnica dos endpoints do backend (`Node.js/Express`), responsável pela simulação logística, regras de negócio e persistência em memória.
@@ -7,7 +6,8 @@ Esta é a documentação técnica dos endpoints do backend (`Node.js/Express`), 
 
 * **URL Base:** `http://localhost:3000`
 * **Autenticação:** Nenhuma (API pública para fins de simulação).
-* **Formato dos Dados:** * Requisições (`POST`): `Content-Type: application/json`.
+* **Formato dos Dados:**
+    * Requisições (`POST`): `Content-Type: application/json`.
     * Respostas: Sempre em formato JSON.
 
 ---
@@ -66,11 +66,11 @@ O endpoint `/dashboard` retorna o "snapshot" (estado atual) da simulação. O Fr
 
 O ciclo de vida de um pedido segue este fluxo:
 
-1.  **`Aguardando`** (Fila de espera)
-2.  **`Em Preparo`** (Separando carga na base)
-3.  **`Carregando`** (Colocando no drone)
-4.  **`Em transporte`** (Drone em voo)
-5.  **`Entregue` / `Concluído`** (Finalizado)
+1.  **`Aguardando`** (Fila de espera - Cor Roxa)
+2.  **`Em Preparo`** (Separando carga na base - Cor Laranja)
+3.  **`Carregando`** (Colocando no drone - Cor Azul)
+4.  **`Em transporte`** (Drone em voo - Cor Amarela)
+5.  **`Concluído`** (Finalizado - Cor Verde)
 
 -----
 
@@ -128,6 +128,52 @@ Gerenciam a entrada de novas demandas logísticas.
 
 -----
 
+## 📍 Endpoints Específicos (Requisitos do Case)
+
+Além do Dashboard, o sistema fornece endpoints isolados conforme solicitado na especificação técnica do desafio.
+
+### `GET /drones/status`
+
+Retorna o status atual, bateria e capacidade de toda a frota de forma simplificada.
+
+  * **Exemplo de Resposta:**
+
+<!-- end list -->
+
+```json
+[
+  {
+    "id": "4562256",
+    "status": "IDLE",
+    "bateria": "Alta",
+    "capacidade": "12.00"
+  },
+  ...
+]
+```
+
+### `GET /entregas/rota`
+
+Retorna especificamente os drones que estão em operação de voo e seus destinos.
+
+  * **Exemplo de Resposta:**
+
+<!-- end list -->
+
+```json
+[
+  {
+    "droneId": "0293201",
+    "status": "EM_VOO",
+    "destino": "Próximo ao Destino",
+    "eta": "45 s",
+    "pedidos": ["uuid-pedido-1", "uuid-pedido-2"]
+  }
+]
+```
+
+-----
+
 ## 📊 Endpoints de Monitoramento
 
 Fornecem dados em tempo real para a interface visual.
@@ -135,10 +181,8 @@ Fornecem dados em tempo real para a interface visual.
 ### `GET /dashboard`
 
   * **Propósito:** Retorna o estado completo da frota, filas e métricas.
-
   * **Detalhes:** Inclui o cálculo de **ETA** (Estimativa de Tempo de Chegada) para cada drone e o nível exato de bateria.
-
-  * **Resposta de Sucesso (200 OK):** Retorna o Objeto de Dashboard (ver estrutura acima).
+  * **Resposta de Sucesso (200 OK):** Retorna o Objeto de Dashboard (ver estrutura no topo).
 
 ### `GET /health`
 
@@ -154,5 +198,4 @@ Fornecem dados em tempo real para a interface visual.
   "time": "2023-12-10T14:00:00.000Z"
 }
 ```
-
 
