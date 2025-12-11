@@ -36,6 +36,6 @@ Toda a documentação técnica, manuais de execução e registros do uso de IA e
   * **[Como Rodar o Projeto](https://github.com/MatheusFelipeCorrea/Sistema-de-Gestao-de-Drone/blob/main/Documents/Rodando%20o%20Projeto/README.MD)** (Passo a passo Backend/Frontend e Testes)
   * **[Documentação da API](https://github.com/MatheusFelipeCorrea/Sistema-de-Gestao-de-Drone/blob/main/Documents/Documenta%C3%A7%C3%A3o%20API/README.MD)** (Endpoints e Estrutura de Dados)
   * **[IAs Utilizadas](https://github.com/MatheusFelipeCorrea/Sistema-de-Gestao-de-Drone/blob/main/Documents/IAs%20Utilizadas%20e%20Rules/README.MD)** (Prompts, regras e contexto utilizados)
-  * **[Wireframes](https://github.com/MatheusFelipeCorrea/Sistema-de-Gestao-de-Drone/tree/main/Documents/Wireframes%20Iniciais)** (Desenhos das telas e protótipos)
+  * **[Wireframes Iniciais](https://github.com/MatheusFelipeCorrea/Sistema-de-Gestao-de-Drone/tree/main/Documents/Wireframes%20Iniciais)** (Desenhos das telas e protótipos)
 
 -----
