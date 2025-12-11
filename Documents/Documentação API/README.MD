@@ -155,5 +155,4 @@ Fornecem dados em tempo real para a interface visual.
 }
 ```
 
-```
-```
+
