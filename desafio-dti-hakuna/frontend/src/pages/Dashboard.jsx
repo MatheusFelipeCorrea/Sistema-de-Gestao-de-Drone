@@ -1,12 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Plus, LayoutDashboard, History, PackageCheck, Clock } from 'lucide-react';
+import { Plus, LayoutDashboard, History, PackageCheck, Clock, CheckCircle } from 'lucide-react';
 import api from '../services/api';
 
-// --- Configuração dos Ícones do Mapa ---
 const createDroneIcon = (color) => new L.DivIcon({
     className: 'custom-icon',
     html: `<div style="background-color: ${color}; width: 30px; height: 30px; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
@@ -30,11 +29,27 @@ export default function Dashboard() {
         historico: []
     });
 
+    const [toast, setToast] = useState(null);
+    const prevHistoricoLength = useRef(0);
+
     useEffect(() => {
         const fetchData = async () => {
             try {
                 const response = await api.get('/dashboard');
-                setData(response.data);
+                const newData = response.data;
+
+                const newHistorico = newData.historico || [];
+                if (newHistorico.length > prevHistoricoLength.current && prevHistoricoLength.current > 0) {
+                    const ultimoPedido = newHistorico[0];
+                    const idCurto = ultimoPedido.id.substring(0, 6);
+                    setToast({
+                        msg: `Pedido #${idCurto} foi entregue com sucesso! 📦`,
+                        visible: true
+                    });
+                    setTimeout(() => setToast(null), 4000);
+                }
+                prevHistoricoLength.current = newHistorico.length;
+                setData(newData);
             } catch (error) {
                 console.error("Erro dashboard:", error);
             }
@@ -48,6 +63,7 @@ export default function Dashboard() {
     const getStatusColor = (status) => {
         const map = {
             'IDLE': 'bg-gray-200 text-gray-700',
+            'PREPARANDO': 'bg-orange-100 text-orange-700', // Adicionado Status Drone
             'CARREGANDO': 'bg-purple-100 text-purple-700',
             'EM_VOO': 'bg-blue-100 text-blue-700',
             'ENTREGANDO': 'bg-orange-100 text-orange-700',
@@ -68,19 +84,32 @@ export default function Dashboard() {
                     <span>{porcentagem || 100}%</span>
                 </div>
                 <div className="w-full bg-gray-300 rounded-full h-2.5 overflow-hidden border border-gray-400">
-                    <div
-                        className={`h-2.5 rounded-full ${cor} transition-all duration-1000 ease-linear`}
-                        style={{ width: `${porcentagem || 100}%` }}
-                    ></div>
+                    <div className={`h-2.5 rounded-full ${cor} transition-all duration-1000 ease-linear`} style={{ width: `${porcentagem || 100}%` }}></div>
                 </div>
             </div>
         );
     };
 
     return (
-        <div className="min-h-screen bg-white font-sans pb-20">
+        <div className="min-h-screen bg-white font-sans pb-20 relative">
 
-            {/* HEADER RESPONSIVO */}
+            {toast && (
+                <div className="fixed bottom-6 right-6 z-[9999] animate-slide-up">
+                    <div className="bg-[#2d3748] text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-4 border-l-4 border-green-500">
+                        <div className="bg-green-500 p-2 rounded-full shadow-lg">
+                            <CheckCircle size={20} className="text-white" />
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-base">Entrega Realizada</h4>
+                            <p className="text-gray-300 text-sm">{toast.msg}</p>
+                        </div>
+                        <button onClick={() => setToast(null)} className="text-gray-400 hover:text-white ml-2">
+                            <Plus size={18} className="rotate-45" />
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <header className="bg-[#000040] text-white p-4 shadow-lg sticky top-0 z-[1000]">
                 <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
                     <h1 className="text-xl md:text-2xl font-bold flex flex-wrap justify-center md:justify-start items-center gap-2 tracking-wide">
@@ -91,9 +120,7 @@ export default function Dashboard() {
                         <button className="flex-1 md:flex-none justify-center items-center gap-2 bg-[#00b0ff] px-4 py-2 rounded-lg font-bold shadow hover:brightness-110 transition cursor-default text-sm md:text-base">
                             <LayoutDashboard size={18} /> Dashboard
                         </button>
-                        <button
-                            onClick={() => navigate('/cadastrar')}
-                            className="flex-1 md:flex-none justify-center items-center gap-2 bg-[#ff5722] px-4 py-2 rounded-lg font-bold shadow hover:brightness-110 transition cursor-pointer text-sm md:text-base">
+                        <button onClick={() => navigate('/cadastrar')} className="flex-1 md:flex-none justify-center items-center gap-2 bg-[#ff5722] px-4 py-2 rounded-lg font-bold shadow hover:brightness-110 transition cursor-pointer text-sm md:text-base">
                             <Plus size={18} /> <span className="hidden sm:inline">Cadastrar</span> Pedido
                         </button>
                     </div>
@@ -102,23 +129,16 @@ export default function Dashboard() {
 
             <div className="max-w-[1600px] mx-auto p-4 md:p-6 space-y-6">
 
-                {/* METRICAS - Grid Responsivo */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                     <MetricCard label="Entregas Realizadas" value={`${data.metricas.entregas}`} suffix="Entregas" />
                     <MetricCard label="Viagens Realizadas" value={`${data.metricas.viagens}`} suffix="Viagens" />
-                    {/* Exibe o tempo médio real calculado no backend */}
                     <MetricCard label="Tempo médio/Entrega" value={data.metricas.tempoMedio} />
                     <MetricCard label="Drone Eficiente" value={`ID: ${data.metricas.droneEficiente}`} />
                 </div>
 
-                {/* STATUS + MAPA */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-auto lg:h-[500px]">
-
-                    {/* Tabela de Status */}
                     <div className="lg:col-span-5 bg-[#e0e0e0] rounded-xl shadow-md p-4 overflow-hidden flex flex-col border border-gray-300 h-[400px] lg:h-full">
-                        <h3 className="text-lg font-bold text-gray-800 mb-4 border-b border-gray-400 pb-2 flex items-center gap-2">
-                            Status dos Drones
-                        </h3>
+                        <h3 className="text-lg font-bold text-gray-800 mb-4 border-b border-gray-400 pb-2 flex items-center gap-2">Status dos Drones</h3>
                         <div className="overflow-y-auto flex-1 pr-1 custom-scrollbar bg-white rounded-lg">
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm text-left min-w-[500px] lg:min-w-full">
@@ -126,9 +146,8 @@ export default function Dashboard() {
                                     <tr>
                                         <th className="p-3">ID</th>
                                         <th className="p-3">Status</th>
-                                        <th className="p-3">Capacidade</th>
+                                        <th className="p-3">Carga</th>
                                         <th className="p-3 min-w-[100px]">Bateria</th>
-                                        {/* Mantive sua responsividade, mas adicionei ETA de volta */}
                                         <th className="p-3">ETA</th>
                                     </tr>
                                     </thead>
@@ -136,16 +155,10 @@ export default function Dashboard() {
                                     {data.drones.map((drone) => (
                                         <tr key={drone.id} className="hover:bg-gray-50 transition">
                                             <td className="p-3 font-bold text-gray-800">{drone.id}</td>
-                                            <td className="p-3">
-                                                <span className={`px-2 py-1 rounded text-xs font-bold whitespace-nowrap ${getStatusColor(drone.status)}`}>
-                                                    {drone.status}
-                                                </span>
-                                            </td>
+                                            <td className="p-3"><span className={`px-2 py-1 rounded text-xs font-bold whitespace-nowrap ${getStatusColor(drone.status)}`}>{drone.status}</span></td>
                                             <td className="p-3 text-gray-600 font-medium">{drone.capacidadeRestante}kg</td>
                                             <td className="p-3">{renderBateria(drone.bateria, drone.bateriaPercentual)}</td>
-                                            <td className="p-3 text-xs font-bold text-blue-600 bg-blue-50 rounded text-center">
-                                                {drone.eta || '-'}
-                                            </td>
+                                            <td className="p-3 text-xs font-bold text-blue-600 bg-blue-50 rounded text-center">{drone.eta || '-'}</td>
                                         </tr>
                                     ))}
                                     </tbody>
@@ -154,31 +167,24 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                    {/* Mapa */}
                     <div className="lg:col-span-7 bg-[#e0e0e0] rounded-xl shadow-md p-4 border border-gray-300 relative z-0 flex flex-col h-[400px] lg:h-full">
                         <h3 className="text-lg font-bold text-gray-800 mb-4 border-b border-gray-400 pb-2">Localização em Tempo Real</h3>
                         <div className="flex-1 rounded-lg overflow-hidden border border-white shadow-inner relative">
                             <MapContainer center={[-19.9208, -43.9378]} zoom={14} style={{ height: '100%', width: '100%' }}>
                                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap contributors' />
                                 {data.drones.map((drone) => (
-                                    <Marker key={drone.id} position={[drone.lat, drone.lng]} icon={drone.status === 'IDLE' || drone.status === 'CARREGANDO' ? iconBase : iconActive}>
+                                    <Marker key={drone.id} position={[drone.lat, drone.lng]} icon={drone.status === 'IDLE' || drone.status === 'CARREGANDO' || drone.status === 'PREPARANDO' ? iconBase : iconActive}>
                                         <Popup>
                                             <div className="text-center min-w-[150px]">
                                                 <strong className="block text-blue-700 text-lg mb-1">Drone {drone.id}</strong>
-
                                                 <div className="bg-gray-100 p-2 rounded mb-2 border border-gray-200">
                                                     <div className="text-gray-600 text-xs uppercase font-bold">Status</div>
                                                     <div className={`text-sm font-bold ${getStatusColor(drone.status).split(' ')[1]}`}>{drone.status}</div>
                                                 </div>
-
-                                                {/* Reintroduzindo o ETA no Popup */}
                                                 <div className="flex justify-between items-center text-xs mb-1 px-1">
                                                     <span className="font-bold text-gray-500">Estimativa:</span>
-                                                    <span className="font-bold text-green-600 bg-green-100 px-2 py-0.5 rounded flex items-center gap-1">
-                                                        <Clock size={12}/> {drone.eta || '-'}
-                                                    </span>
+                                                    <span className="font-bold text-green-600 bg-green-100 px-2 py-0.5 rounded flex items-center gap-1"><Clock size={12}/> {drone.eta || '-'}</span>
                                                 </div>
-
                                                 <div className="w-full bg-gray-200 h-2 mt-1 rounded-full overflow-hidden">
                                                     <div className="bg-green-500 h-full" style={{width: drone.bateriaPercentual + '%'}}></div>
                                                 </div>
@@ -193,11 +199,8 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                {/* FILA DE PEDIDOS */}
                 <div className="bg-[#e0e0e0] rounded-xl shadow-md p-4 md:p-6 border border-gray-300">
-                    <h3 className="text-lg font-bold text-gray-800 mb-4 border-b border-gray-400 pb-2 flex items-center gap-2">
-                        Fila de Pedidos
-                    </h3>
+                    <h3 className="text-lg font-bold text-gray-800 mb-4 border-b border-gray-400 pb-2 flex items-center gap-2">Fila de Pedidos</h3>
                     <div className="overflow-x-auto bg-white rounded-lg max-h-[300px] overflow-y-auto custom-scrollbar">
                         <table className="w-full text-sm text-left min-w-[600px]">
                             <thead className="bg-gray-100 text-gray-700 font-bold uppercase text-xs sticky top-0">
@@ -220,10 +223,18 @@ export default function Dashboard() {
                                         <td className="px-4 py-3 font-bold text-gray-600">{pedido.peso} kg</td>
                                         <td className="px-4 py-3"><BadgePrioridade nivel={pedido.prioridade} /></td>
                                         <td className="px-4 py-3">
-                                            <span className={`text-xs font-bold px-3 py-1 rounded-full border whitespace-nowrap
-                                                ${pedido.status === 'Carregando' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+
+                                            {/* --- AQUI ESTÁ A LÓGICA DE CORES IGUAL À SUA IMAGEM --- */}
+                                            <span className={`text-xs font-bold px-3 py-1 rounded-full border whitespace-nowrap 
+                                                ${
+                                                pedido.status === 'Em Preparo' ? 'bg-orange-100 text-orange-700 border-orange-200' :
+                                                    pedido.status === 'Carregando' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                                                        pedido.status === 'Em transporte' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                                                            'bg-purple-100 text-purple-700 border-purple-200' // Aguardando
+                                            }`}>
                                                 {pedido.status}
                                             </span>
+
                                         </td>
                                     </tr>
                                 ))
@@ -233,11 +244,8 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                {/* HISTÓRICO DE ENTREGAS */}
                 <div className="bg-[#e0e0e0] rounded-xl shadow-md p-4 md:p-6 border border-gray-300">
-                    <h3 className="text-lg font-bold text-gray-800 mb-4 border-b border-gray-400 pb-2 flex items-center gap-2">
-                        <History size={24} className="text-gray-600" /> <span className="hidden sm:inline">Histórico de</span> Concluídos
-                    </h3>
+                    <h3 className="text-lg font-bold text-gray-800 mb-4 border-b border-gray-400 pb-2 flex items-center gap-2"><History size={24} className="text-gray-600" /> <span className="hidden sm:inline">Histórico de</span> Concluídos</h3>
                     <div className="overflow-x-auto bg-white rounded-lg max-h-[300px] overflow-y-auto custom-scrollbar">
                         <table className="w-full text-sm text-left min-w-[700px]">
                             <thead className="bg-gray-200 text-gray-700 font-bold uppercase text-xs sticky top-0">
@@ -246,7 +254,6 @@ export default function Dashboard() {
                                 <th className="px-4 py-3">Endereço</th>
                                 <th className="px-4 py-3">Prioridade</th>
                                 <th className="px-4 py-3">Entrega</th>
-                                {/* Coluna nova para mostrar tempo total real */}
                                 <th className="px-4 py-3">Tempo Total</th>
                                 <th className="px-4 py-3">Status</th>
                             </tr>
@@ -263,9 +270,7 @@ export default function Dashboard() {
                                         <td className="px-4 py-3 font-bold text-gray-700 whitespace-nowrap">{pedido.entregueEm}</td>
                                         <td className="px-4 py-3 font-bold text-blue-600">{pedido.tempoTotal}</td>
                                         <td className="px-4 py-3">
-                                            <span className="flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full border bg-green-100 text-green-700 border-green-200 w-fit whitespace-nowrap">
-                                                <PackageCheck size={14} /> Concluído
-                                            </span>
+                                            <span className="flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full border bg-green-100 text-green-700 border-green-200 w-fit whitespace-nowrap"><PackageCheck size={14} /> Concluído</span>
                                         </td>
                                     </tr>
                                 ))
@@ -280,14 +285,11 @@ export default function Dashboard() {
     );
 }
 
-// --- Componentes Pequenos (Ajustados) ---
 function MetricCard({ label, value, suffix = '' }) {
     return (
         <div className="bg-[#e0e0e0] p-4 md:p-6 rounded-xl shadow-md border-l-4 border-gray-400 flex flex-col justify-center items-center text-center hover:scale-[1.02] transition-transform">
             <h4 className="text-gray-800 text-sm md:text-base font-bold mb-2 w-full border-b border-gray-300 pb-1 truncate">{label}</h4>
-            <span className="text-2xl md:text-3xl font-black text-gray-900 mt-1">
-                {value} <span className="text-sm font-medium text-gray-600 block sm:inline">{suffix}</span>
-            </span>
+            <span className="text-2xl md:text-3xl font-black text-gray-900 mt-1">{value} <span className="text-sm font-medium text-gray-600 block sm:inline">{suffix}</span></span>
         </div>
     );
 }
