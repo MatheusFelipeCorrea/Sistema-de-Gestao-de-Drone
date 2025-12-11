@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Plus, LayoutDashboard, History, PackageCheck } from 'lucide-react'; // Ícones novos
+import { Plus, LayoutDashboard, History, PackageCheck, Clock } from 'lucide-react';
 import api from '../services/api';
 
 // --- Configuração dos Ícones do Mapa ---
@@ -27,7 +27,7 @@ export default function Dashboard() {
         metricas: { entregas: 0, viagens: 0, eficiencia: '100%', droneEficiente: '-', tempoMedio: '-' },
         drones: [],
         pedidos: [],
-        historico: [] // <--- Novo Estado
+        historico: []
     });
 
     useEffect(() => {
@@ -62,9 +62,9 @@ export default function Dashboard() {
         if (porcentagem < 20) cor = 'bg-red-600';
 
         return (
-            <div className="w-full min-w-[100px]">
+            <div className="w-full min-w-[80px]">
                 <div className="flex justify-between text-xs mb-1 font-bold text-gray-600">
-                    <span>{nivelTexto}</span>
+                    <span className="hidden sm:inline">{nivelTexto}</span>
                     <span>{porcentagem || 100}%</span>
                 </div>
                 <div className="w-full bg-gray-300 rounded-full h-2.5 overflow-hidden border border-gray-400">
@@ -80,85 +80,109 @@ export default function Dashboard() {
     return (
         <div className="min-h-screen bg-white font-sans pb-20">
 
-            {/* HEADER */}
-            <header className="bg-[#000040] text-white p-4 flex justify-between items-center shadow-lg sticky top-0 z-[1000]">
-                <h1 className="text-2xl font-bold flex items-center gap-2 tracking-wide">
-                    Drone e CIA <span className="text-xs bg-blue-500 px-2 py-0.5 rounded-full font-normal">Simulador v1.0</span>
-                </h1>
-                <div className="flex gap-3">
-                    <button className="flex items-center gap-2 bg-[#00b0ff] px-4 py-2 rounded-lg font-bold shadow hover:brightness-110 transition cursor-default">
-                        <LayoutDashboard size={18} /> Dashboard
-                    </button>
-                    <button
-                        onClick={() => navigate('/cadastrar')}
-                        className="flex items-center gap-2 bg-[#ff5722] px-4 py-2 rounded-lg font-bold shadow hover:brightness-110 transition cursor-pointer">
-                        <Plus size={18} /> Cadastrar Pedido
-                    </button>
+            {/* HEADER RESPONSIVO */}
+            <header className="bg-[#000040] text-white p-4 shadow-lg sticky top-0 z-[1000]">
+                <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+                    <h1 className="text-xl md:text-2xl font-bold flex flex-wrap justify-center md:justify-start items-center gap-2 tracking-wide">
+                        Drone e CIA
+                        <span className="text-xs bg-blue-500 px-2 py-0.5 rounded-full font-normal whitespace-nowrap">Simulador v1.0</span>
+                    </h1>
+                    <div className="flex w-full md:w-auto gap-3">
+                        <button className="flex-1 md:flex-none justify-center items-center gap-2 bg-[#00b0ff] px-4 py-2 rounded-lg font-bold shadow hover:brightness-110 transition cursor-default text-sm md:text-base">
+                            <LayoutDashboard size={18} /> Dashboard
+                        </button>
+                        <button
+                            onClick={() => navigate('/cadastrar')}
+                            className="flex-1 md:flex-none justify-center items-center gap-2 bg-[#ff5722] px-4 py-2 rounded-lg font-bold shadow hover:brightness-110 transition cursor-pointer text-sm md:text-base">
+                            <Plus size={18} /> <span className="hidden sm:inline">Cadastrar</span> Pedido
+                        </button>
+                    </div>
                 </div>
             </header>
 
-            <div className="max-w-[1600px] mx-auto p-6 space-y-6">
+            <div className="max-w-[1600px] mx-auto p-4 md:p-6 space-y-6">
 
-                {/* METRICAS */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <MetricCard label="Número de entregas Realizadas" value={`${data.metricas.entregas} Entregas`} />
-                    <MetricCard label="Número de viagens Realizadas" value={`${data.metricas.viagens} Viagens`} />
-                    <MetricCard label="Tempo médio por Entrega" value={data.metricas.tempoMedio} />
-                    <MetricCard label="Drone Mais Eficiente" value={`ID: ${data.metricas.droneEficiente}`} />
+                {/* METRICAS - Grid Responsivo */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                    <MetricCard label="Entregas Realizadas" value={`${data.metricas.entregas}`} suffix="Entregas" />
+                    <MetricCard label="Viagens Realizadas" value={`${data.metricas.viagens}`} suffix="Viagens" />
+                    {/* Exibe o tempo médio real calculado no backend */}
+                    <MetricCard label="Tempo médio/Entrega" value={data.metricas.tempoMedio} />
+                    <MetricCard label="Drone Eficiente" value={`ID: ${data.metricas.droneEficiente}`} />
                 </div>
 
                 {/* STATUS + MAPA */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[500px]">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-auto lg:h-[500px]">
+
                     {/* Tabela de Status */}
-                    <div className="lg:col-span-5 bg-[#e0e0e0] rounded-xl shadow-md p-4 overflow-hidden flex flex-col border border-gray-300">
+                    <div className="lg:col-span-5 bg-[#e0e0e0] rounded-xl shadow-md p-4 overflow-hidden flex flex-col border border-gray-300 h-[400px] lg:h-full">
                         <h3 className="text-lg font-bold text-gray-800 mb-4 border-b border-gray-400 pb-2 flex items-center gap-2">
                             Status dos Drones
                         </h3>
-                        <div className="overflow-y-auto flex-1 pr-2 custom-scrollbar bg-white rounded-lg">
-                            <table className="w-full text-sm text-left">
-                                <thead className="text-gray-700 font-bold bg-gray-100 sticky top-0 shadow-sm">
-                                <tr>
-                                    <th className="p-3">ID Drone</th>
-                                    <th className="p-3">Status</th>
-                                    <th className="p-3">Capacidade</th>
-                                    <th className="p-3 min-w-[120px]">Bateria</th>
-                                    <th className="p-3">Rota</th>
-                                </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                {data.drones.map((drone) => (
-                                    <tr key={drone.id} className="hover:bg-gray-50 transition">
-                                        <td className="p-3 font-bold text-gray-800">{drone.id}</td>
-                                        <td className="p-3">
-                                            <span className={`px-2 py-1 rounded text-xs font-bold ${getStatusColor(drone.status)}`}>
-                                                {drone.status}
-                                            </span>
-                                        </td>
-                                        <td className="p-3 text-gray-600 font-medium">{drone.capacidadeRestante}kg</td>
-                                        <td className="p-3">{renderBateria(drone.bateria, drone.bateriaPercentual)}</td>
-                                        <td className="p-3 text-xs text-gray-500 font-medium truncate max-w-[100px]">{drone.rota}</td>
+                        <div className="overflow-y-auto flex-1 pr-1 custom-scrollbar bg-white rounded-lg">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm text-left min-w-[500px] lg:min-w-full">
+                                    <thead className="text-gray-700 font-bold bg-gray-100 sticky top-0 shadow-sm z-10">
+                                    <tr>
+                                        <th className="p-3">ID</th>
+                                        <th className="p-3">Status</th>
+                                        <th className="p-3">Capacidade</th>
+                                        <th className="p-3 min-w-[100px]">Bateria</th>
+                                        {/* Mantive sua responsividade, mas adicionei ETA de volta */}
+                                        <th className="p-3">ETA</th>
                                     </tr>
-                                ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                    {data.drones.map((drone) => (
+                                        <tr key={drone.id} className="hover:bg-gray-50 transition">
+                                            <td className="p-3 font-bold text-gray-800">{drone.id}</td>
+                                            <td className="p-3">
+                                                <span className={`px-2 py-1 rounded text-xs font-bold whitespace-nowrap ${getStatusColor(drone.status)}`}>
+                                                    {drone.status}
+                                                </span>
+                                            </td>
+                                            <td className="p-3 text-gray-600 font-medium">{drone.capacidadeRestante}kg</td>
+                                            <td className="p-3">{renderBateria(drone.bateria, drone.bateriaPercentual)}</td>
+                                            <td className="p-3 text-xs font-bold text-blue-600 bg-blue-50 rounded text-center">
+                                                {drone.eta || '-'}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
 
                     {/* Mapa */}
-                    <div className="lg:col-span-7 bg-[#e0e0e0] rounded-xl shadow-md p-4 border border-gray-300 relative z-0 flex flex-col">
-                        <h3 className="text-lg font-bold text-gray-800 mb-4 border-b border-gray-400 pb-2">Mapa com a Localização dos Drones</h3>
+                    <div className="lg:col-span-7 bg-[#e0e0e0] rounded-xl shadow-md p-4 border border-gray-300 relative z-0 flex flex-col h-[400px] lg:h-full">
+                        <h3 className="text-lg font-bold text-gray-800 mb-4 border-b border-gray-400 pb-2">Localização em Tempo Real</h3>
                         <div className="flex-1 rounded-lg overflow-hidden border border-white shadow-inner relative">
                             <MapContainer center={[-19.9208, -43.9378]} zoom={14} style={{ height: '100%', width: '100%' }}>
                                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap contributors' />
                                 {data.drones.map((drone) => (
                                     <Marker key={drone.id} position={[drone.lat, drone.lng]} icon={drone.status === 'IDLE' || drone.status === 'CARREGANDO' ? iconBase : iconActive}>
                                         <Popup>
-                                            <div className="text-center">
-                                                <strong className="block text-blue-600">Drone {drone.id}</strong>
-                                                <span className="text-xs text-gray-500">{drone.status}</span>
-                                                <div className="w-full bg-gray-200 h-1.5 mt-1 rounded">
-                                                    <div className="bg-green-500 h-1.5 rounded" style={{width: drone.bateriaPercentual + '%'}}></div>
+                                            <div className="text-center min-w-[150px]">
+                                                <strong className="block text-blue-700 text-lg mb-1">Drone {drone.id}</strong>
+
+                                                <div className="bg-gray-100 p-2 rounded mb-2 border border-gray-200">
+                                                    <div className="text-gray-600 text-xs uppercase font-bold">Status</div>
+                                                    <div className={`text-sm font-bold ${getStatusColor(drone.status).split(' ')[1]}`}>{drone.status}</div>
                                                 </div>
+
+                                                {/* Reintroduzindo o ETA no Popup */}
+                                                <div className="flex justify-between items-center text-xs mb-1 px-1">
+                                                    <span className="font-bold text-gray-500">Estimativa:</span>
+                                                    <span className="font-bold text-green-600 bg-green-100 px-2 py-0.5 rounded flex items-center gap-1">
+                                                        <Clock size={12}/> {drone.eta || '-'}
+                                                    </span>
+                                                </div>
+
+                                                <div className="w-full bg-gray-200 h-2 mt-1 rounded-full overflow-hidden">
+                                                    <div className="bg-green-500 h-full" style={{width: drone.bateriaPercentual + '%'}}></div>
+                                                </div>
+                                                <div className="text-[10px] text-gray-400 mt-1">Bateria: {drone.bateriaPercentual}%</div>
                                             </div>
                                         </Popup>
                                     </Marker>
@@ -169,17 +193,17 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                {/* FILA DE PEDIDOS PENDENTES */}
-                <div className="bg-[#e0e0e0] rounded-xl shadow-md p-6 border border-gray-300">
+                {/* FILA DE PEDIDOS */}
+                <div className="bg-[#e0e0e0] rounded-xl shadow-md p-4 md:p-6 border border-gray-300">
                     <h3 className="text-lg font-bold text-gray-800 mb-4 border-b border-gray-400 pb-2 flex items-center gap-2">
-                        Fila de Pedidos (Pendentes e em Transporte)
+                        Fila de Pedidos
                     </h3>
                     <div className="overflow-x-auto bg-white rounded-lg max-h-[300px] overflow-y-auto custom-scrollbar">
-                        <table className="w-full text-sm text-left">
+                        <table className="w-full text-sm text-left min-w-[600px]">
                             <thead className="bg-gray-100 text-gray-700 font-bold uppercase text-xs sticky top-0">
                             <tr>
-                                <th className="px-4 py-3">ID Pedido</th>
-                                <th className="px-4 py-3">Endereço de Destino</th>
+                                <th className="px-4 py-3">ID</th>
+                                <th className="px-4 py-3">Endereço</th>
                                 <th className="px-4 py-3">Peso</th>
                                 <th className="px-4 py-3">Prioridade</th>
                                 <th className="px-4 py-3">Status</th>
@@ -192,11 +216,11 @@ export default function Dashboard() {
                                 data.pedidos.map((pedido) => (
                                     <tr key={pedido.id} className="hover:bg-gray-50">
                                         <td className="px-4 py-3 font-mono text-xs text-gray-500 font-bold">#{pedido.id.substring(0,6)}</td>
-                                        <td className="px-4 py-3 font-medium text-gray-800">{pedido.endereco}</td>
+                                        <td className="px-4 py-3 font-medium text-gray-800 truncate max-w-[150px]">{pedido.endereco}</td>
                                         <td className="px-4 py-3 font-bold text-gray-600">{pedido.peso} kg</td>
                                         <td className="px-4 py-3"><BadgePrioridade nivel={pedido.prioridade} /></td>
                                         <td className="px-4 py-3">
-                                            <span className={`text-xs font-bold px-3 py-1 rounded-full border 
+                                            <span className={`text-xs font-bold px-3 py-1 rounded-full border whitespace-nowrap
                                                 ${pedido.status === 'Carregando' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
                                                 {pedido.status}
                                             </span>
@@ -209,21 +233,22 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                {/* --- NOVO CARD: HISTÓRICO DE ENTREGAS --- */}
-                <div className="bg-[#e0e0e0] rounded-xl shadow-md p-6 border border-gray-300">
+                {/* HISTÓRICO DE ENTREGAS */}
+                <div className="bg-[#e0e0e0] rounded-xl shadow-md p-4 md:p-6 border border-gray-300">
                     <h3 className="text-lg font-bold text-gray-800 mb-4 border-b border-gray-400 pb-2 flex items-center gap-2">
-                        <History size={24} className="text-gray-600" /> Histórico de Pedidos Concluídos
+                        <History size={24} className="text-gray-600" /> <span className="hidden sm:inline">Histórico de</span> Concluídos
                     </h3>
                     <div className="overflow-x-auto bg-white rounded-lg max-h-[300px] overflow-y-auto custom-scrollbar">
-                        <table className="w-full text-sm text-left">
+                        <table className="w-full text-sm text-left min-w-[700px]">
                             <thead className="bg-gray-200 text-gray-700 font-bold uppercase text-xs sticky top-0">
                             <tr>
-                                <th className="px-4 py-3">ID Pedido</th>
-                                <th className="px-4 py-3">Endereço de Destino</th>
-                                <th className="px-4 py-3">Peso</th>
+                                <th className="px-4 py-3">ID</th>
+                                <th className="px-4 py-3">Endereço</th>
                                 <th className="px-4 py-3">Prioridade</th>
-                                <th className="px-4 py-3">Horário de Entrega</th>
-                                <th className="px-4 py-3">Status Final</th>
+                                <th className="px-4 py-3">Entrega</th>
+                                {/* Coluna nova para mostrar tempo total real */}
+                                <th className="px-4 py-3">Tempo Total</th>
+                                <th className="px-4 py-3">Status</th>
                             </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
@@ -233,12 +258,12 @@ export default function Dashboard() {
                                 data.historico.map((pedido) => (
                                     <tr key={pedido.id} className="hover:bg-gray-50 bg-gray-50/50">
                                         <td className="px-4 py-3 font-mono text-xs text-gray-400 font-bold line-through">#{pedido.id.substring(0,6)}</td>
-                                        <td className="px-4 py-3 font-medium text-gray-500">{pedido.endereco}</td>
-                                        <td className="px-4 py-3 text-gray-400">{pedido.peso} kg</td>
+                                        <td className="px-4 py-3 font-medium text-gray-500 truncate max-w-[150px]">{pedido.endereco}</td>
                                         <td className="px-4 py-3 text-gray-400 text-xs">{pedido.prioridade}</td>
-                                        <td className="px-4 py-3 font-bold text-gray-700">{pedido.entregueEm}</td>
+                                        <td className="px-4 py-3 font-bold text-gray-700 whitespace-nowrap">{pedido.entregueEm}</td>
+                                        <td className="px-4 py-3 font-bold text-blue-600">{pedido.tempoTotal}</td>
                                         <td className="px-4 py-3">
-                                            <span className="flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full border bg-green-100 text-green-700 border-green-200 w-fit">
+                                            <span className="flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full border bg-green-100 text-green-700 border-green-200 w-fit whitespace-nowrap">
                                                 <PackageCheck size={14} /> Concluído
                                             </span>
                                         </td>
@@ -255,12 +280,14 @@ export default function Dashboard() {
     );
 }
 
-// --- Componentes Pequenos ---
-function MetricCard({ label, value }) {
+// --- Componentes Pequenos (Ajustados) ---
+function MetricCard({ label, value, suffix = '' }) {
     return (
-        <div className="bg-[#e0e0e0] p-6 rounded-xl shadow-md border-l-4 border-gray-400 flex flex-col justify-center items-center text-center">
-            <h4 className="text-gray-800 font-bold mb-2 w-full border-b border-gray-300 pb-1">{label}</h4>
-            <span className="text-3xl font-black text-gray-900 mt-1">{value}</span>
+        <div className="bg-[#e0e0e0] p-4 md:p-6 rounded-xl shadow-md border-l-4 border-gray-400 flex flex-col justify-center items-center text-center hover:scale-[1.02] transition-transform">
+            <h4 className="text-gray-800 text-sm md:text-base font-bold mb-2 w-full border-b border-gray-300 pb-1 truncate">{label}</h4>
+            <span className="text-2xl md:text-3xl font-black text-gray-900 mt-1">
+                {value} <span className="text-sm font-medium text-gray-600 block sm:inline">{suffix}</span>
+            </span>
         </div>
     );
 }

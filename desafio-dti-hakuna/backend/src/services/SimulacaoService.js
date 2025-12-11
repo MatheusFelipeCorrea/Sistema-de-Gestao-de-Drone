@@ -3,27 +3,23 @@ import { Drone } from '../models/Drone.js';
 
 class SimulacaoService {
     constructor() {
-        // Inicializa Drones (Deixei 1 ativo para teste, pode descomentar os outros)
+        // Inicializa Frota (5 Drones)
         this.frota = [
             new Drone('4562256'),
             new Drone('0293201'),
             new Drone('4590902'),
             new Drone('3466703'),
-            new Drone('7642304'),
-
-            // new Drone('8812005'),
-            // new Drone('1100206'),
-            // new Drone('9934107'),
-            // new Drone('5543208'),
-            // new Drone('2211909')
+            new Drone('7642304')
         ];
 
-        this.pedidosFila = [];      // Pedidos pendentes/ativos
-        this.pedidosConcluidos = []; // NOVA LISTA: Histórico
+        this.pedidosFila = [];
+        this.pedidosConcluidos = [];
 
         this.historicoViagens = 0;
         this.historicoEntregas = 0;
+        this.somaTempoEntregas = 0; // Acumulador de tempo (segundos)
 
+        // Game Loop (1 segundo)
         setInterval(() => this.atualizarFrota(), 1000);
     }
 
@@ -31,7 +27,7 @@ class SimulacaoService {
         this.pedidosFila.push({
             ...pedido,
             status: 'Aguardando',
-            criadoEm: Date.now()
+            criadoEm: Date.now() // Timestamp importante para o cálculo
         });
         console.log(`📦 Novo pedido recebido: ${pedido.endereco}`);
     }
@@ -77,19 +73,15 @@ class SimulacaoService {
             if (this.pedidosFila.length === 0) return;
 
             const pedidoPrincipal = this.pedidosFila[0];
-
-            // Só aloca se o pedido estiver com status 'Aguardando' (evita pegar os que já estão em 'Entregue')
             if (pedidoPrincipal.status !== 'Aguardando') return;
 
             if (pedidoPrincipal.peso <= drone.capacidadeMax) {
                 let melhorCombinacao = [pedidoPrincipal];
                 let pesoCombinado = pedidoPrincipal.peso;
 
-                // Otimização 1:N
                 for (let i = 1; i < this.pedidosFila.length; i++) {
                     const pedidoCandidato = this.pedidosFila[i];
                     if (pedidoCandidato.status !== 'Aguardando') continue;
-
                     if (pesoCombinado + pedidoCandidato.peso > drone.capacidadeMax) continue;
 
                     melhorCombinacao.push(pedidoCandidato);
@@ -98,11 +90,10 @@ class SimulacaoService {
                     if (pesoCombinado >= drone.capacidadeMax || melhorCombinacao.length >= 3) break;
                 }
 
-                // Atualiza status na fila principal
                 melhorCombinacao.forEach(p => p.status = 'Carregando');
 
                 drone.status = 'CARREGANDO';
-                drone.pedidos = [...melhorCombinacao]; // Copia para o drone
+                drone.pedidos = [...melhorCombinacao];
                 drone.cargaAtual = pesoCombinado;
                 drone.destinoAtual = melhorCombinacao[0].coordenadas;
 
@@ -112,15 +103,17 @@ class SimulacaoService {
     }
 
     moverDrone(drone, destino) {
+        // Movimento (Interpolação)
         const latDiff = destino.lat - drone.localizacao.lat;
         const lngDiff = destino.lng - drone.localizacao.lng;
-
         drone.localizacao.lat += latDiff * 0.1;
         drone.localizacao.lng += lngDiff * 0.1;
 
+        // Bateria
         drone.bateria -= 0.5;
         if(drone.bateria < 0) drone.bateria = 0;
 
+        // Checagem de chegada
         const dist = getDistance(drone.localizacao, destino);
         if (dist < 50) {
             if (drone.status === 'EM_VOO') {
@@ -140,36 +133,70 @@ class SimulacaoService {
         if (pedidoEntregue) {
             this.historicoEntregas++;
 
-            // 1. Remove da Fila de Pendentes
-            this.pedidosFila = this.pedidosFila.filter(p => p.id !== pedidoEntregue.id);
+            // --- CÁLCULO DE TEMPO REAL ---
+            const agora = Date.now();
+            // Calcula quanto tempo demorou desde que foi criado (em segundos)
+            const tempoDecorrido = (agora - pedidoEntregue.criadoEm) / 1000;
+            this.somaTempoEntregas += tempoDecorrido;
 
-            // 2. Adiciona no Histórico de Concluídos
-            const agora = new Date();
+            // Remove da fila e adiciona ao histórico
+            this.pedidosFila = this.pedidosFila.filter(p => p.id !== pedidoEntregue.id);
             this.pedidosConcluidos.unshift({
                 ...pedidoEntregue,
                 status: 'Concluído',
-                entregueEm: agora.toLocaleTimeString('pt-BR')
+                entregueEm: new Date().toLocaleTimeString('pt-BR'),
+                tempoTotal: `${tempoDecorrido.toFixed(0)}s` // Guardamos para exibir se quiser
             });
 
-            // Limita o histórico aos últimos 50 pedidos (pra não travar a memória)
             if (this.pedidosConcluidos.length > 50) this.pedidosConcluidos.pop();
         }
 
         if (drone.pedidos.length > 0) {
-            console.log(`🔄 ${drone.id} concluiu 1 entrega. Próximo...`);
             drone.status = 'EM_VOO';
             drone.destinoAtual = drone.pedidos[0].coordenadas;
         } else {
-            console.log(`🏠 ${drone.id} retornando.`);
             drone.status = 'RETORNANDO';
             drone.cargaAtual = 0;
             this.historicoViagens++;
         }
     }
 
+    // Função Auxiliar para estimar tempo de chegada (ETA)
+    calcularETA(drone) {
+        if (drone.status !== 'EM_VOO' && drone.status !== 'RETORNANDO') return '-';
+
+        const destino = drone.status === 'RETORNANDO' ? drone.baseLocation : drone.destinoAtual;
+        if (!destino) return '-';
+
+        const distMetros = getDistance(drone.localizacao, destino);
+
+        // Estimativa: Velocidade média simulada de 100 metros por segundo (no mapa)
+        // Isso é ajustado para a velocidade da nossa simulação visual
+        const velocidadeMedia = 100;
+        const segundos = Math.ceil(distMetros / velocidadeMedia);
+
+        if (segundos > 60) {
+            return `${Math.ceil(segundos/60)} min`;
+        }
+        return `${segundos} s`;
+    }
+
     getDashboardData() {
+        // Cálculo da Média Global
+        const mediaSegundos = this.historicoEntregas > 0
+            ? this.somaTempoEntregas / this.historicoEntregas
+            : 0;
+
+        // Formatação (Ex: "120s" ou "2 min")
+        let tempoMedioFormatado = '-';
+        if (mediaSegundos > 0) {
+            tempoMedioFormatado = mediaSegundos > 60
+                ? `${(mediaSegundos/60).toFixed(1)} min`
+                : `${mediaSegundos.toFixed(0)} seg`;
+        }
+
         const eficiencia = this.historicoViagens > 0
-            ? Math.round((this.historicoEntregas / (this.historicoViagens/2)) * 100)
+            ? Math.round((this.historicoEntregas / (this.historicoViagens)) * 100) // Ajustei a formula
             : 100;
 
         return {
@@ -178,7 +205,7 @@ class SimulacaoService {
                 viagens: this.historicoViagens,
                 eficiencia: `${eficiencia}%`,
                 droneEficiente: '4562256',
-                tempoMedio: '2 seg'
+                tempoMedio: tempoMedioFormatado // <--- Valor Real Agora
             },
             drones: this.frota.map(d => ({
                 id: d.id,
@@ -189,10 +216,11 @@ class SimulacaoService {
                 rota: d.rota,
                 lat: d.localizacao.lat,
                 lng: d.localizacao.lng,
-                pedidos: d.pedidos
+                pedidos: d.pedidos,
+                eta: this.calcularETA(d) // <--- Nova Propriedade ETA
             })),
             pedidos: this.pedidosFila,
-            historico: this.pedidosConcluidos // <--- Enviando histórico pro front
+            historico: this.pedidosConcluidos
         };
     }
 }

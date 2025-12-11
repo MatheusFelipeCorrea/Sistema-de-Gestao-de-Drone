@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowLeft } from 'lucide-react';
@@ -27,11 +27,7 @@ export default function Cadastro() {
     const buscarCoordenadas = async (endereco, numero, bairro) => {
         if (!endereco) return;
 
-        // Se o usuário já digitou uma coordenada manualmente, talvez não devêssemos sobrescrever?
-        // Por enquanto, vamos manter o comportamento de atualizar se mudar o endereço,
-        // mas o usuário pode corrigir depois.
         const query = `${endereco}, ${numero ? numero : ''}, ${bairro || ''}, Belo Horizonte, MG`;
-
         console.log("📍 Buscando GPS para:", query);
 
         try {
@@ -40,14 +36,12 @@ export default function Cadastro() {
             if (geoRes.data && geoRes.data[0]) {
                 const { lat, lon } = geoRes.data[0];
 
-                // Atualiza o estado lógico
                 setFormData(prev => ({
                     ...prev,
                     lat: lat,
                     lng: lon
                 }));
 
-                // Atualiza o estado visual (texto do input)
                 setCoordInput(`${lat}, ${lon}`);
             }
         } catch (err) {
@@ -59,7 +53,6 @@ export default function Cadastro() {
     const handleCoordBlur = () => {
         if (!coordInput) return;
 
-        // Tenta separar a string por vírgula (ex: "-19.90, -43.90")
         const parts = coordInput.split(',');
 
         if (parts.length === 2) {
@@ -108,12 +101,9 @@ export default function Cadastro() {
             return;
         }
 
-        // Usa as coordenadas do input visual se o formData estiver vazio, ou vice-versa
-        // Isso garante que o que está escrito no campo é o que vale.
         let finalLat = formData.lat;
         let finalLng = formData.lng;
 
-        // Validação de segurança antes de enviar
         if (!finalLat && coordInput.includes(',')) {
             const parts = coordInput.split(',');
             finalLat = parts[0].trim();
@@ -142,33 +132,44 @@ export default function Cadastro() {
     };
 
     return (
-        <div className="min-h-screen bg-white font-sans">
+        <div className="min-h-screen bg-white font-sans pb-10">
 
-            <header className="bg-[#000040] py-4 relative flex items-center justify-center shadow-md sticky top-0 z-50">
-                <div className="absolute left-4 md:left-8">
+            {/* HEADER RESPONSIVO */}
+            <header className="bg-[#000040] py-4 shadow-md sticky top-0 z-50">
+                <div className="max-w-[1600px] mx-auto px-4 flex items-center justify-between relative">
                     <button
                         onClick={() => navigate('/')}
-                        className="bg-[#000040] border border-blue-900 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-900 transition shadow-lg">
-                        <div className="bg-[#ff5722] p-1 rounded">
-                            <ArrowLeft size={20} className="text-white" />
+                        className="bg-[#000040] border border-blue-900 text-white px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-900 transition shadow-lg z-10">
+                        <div className="bg-[#ff5722] p-1 rounded flex-shrink-0">
+                            <ArrowLeft size={18} className="text-white" />
                         </div>
-                        <span className="font-bold hidden md:inline">Voltar</span>
+                        <span className="font-bold hidden sm:inline text-sm">Voltar</span>
                     </button>
+
+                    {/* Título centralizado absolutamente para garantir alinhamento */}
+                    <div className="absolute left-0 right-0 text-center pointer-events-none">
+                        <h1 className="text-lg md:text-2xl font-bold text-white tracking-wider pointer-events-auto inline-block">
+                            Drone e CIA
+                        </h1>
+                    </div>
+
+                    {/* Espaçador invisível para manter equilíbrio se precisar de botão à direita no futuro */}
+                    <div className="w-[80px] hidden sm:block"></div>
                 </div>
-                <h1 className="text-xl md:text-2xl font-bold text-white tracking-wider">Drone e CIA</h1>
             </header>
 
-            <div className="flex justify-center items-start pt-8 px-4 pb-12">
-                <div className="bg-[#d9d9d9] rounded-[20px] shadow-xl w-full max-w-[900px] p-6 md:p-10 border border-gray-300">
+            <div className="flex justify-center items-start pt-6 px-4 md:pt-8 md:px-6">
+                <div className="bg-[#d9d9d9] rounded-[20px] shadow-xl w-full max-w-[900px] p-5 md:p-10 border border-gray-300">
 
+                    {/* SEÇÃO 1: ENDEREÇO */}
                     <div className="mb-8">
                         <h2 className="text-sm font-bold text-gray-800 uppercase border-b border-black pb-1 mb-4 w-full">
-                            INFORMAÇÕES GERAIS DA ENTREGA
+                            Informações Gerais da Entrega
                         </h2>
 
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm text-gray-700 mb-1 ml-1">Endereço (Rua/Av)</label>
+                                <label className="block text-sm text-gray-700 mb-1 ml-1 font-semibold">Endereço (Rua/Av)</label>
                                 <input
                                     type="text"
                                     className="w-full border border-black rounded-[10px] p-2 bg-white outline-none h-[45px] focus:border-blue-600 transition"
@@ -179,9 +180,10 @@ export default function Cadastro() {
                                 />
                             </div>
 
+                            {/* Grid Responsivo: 1 col (mobile), 12 cols (desktop) */}
                             <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                                 <div className="md:col-span-3">
-                                    <label className="block text-sm text-gray-700 mb-1 ml-1">CEP</label>
+                                    <label className="block text-sm text-gray-700 mb-1 ml-1 font-semibold">CEP</label>
                                     <input
                                         type="text"
                                         maxLength="9"
@@ -193,7 +195,7 @@ export default function Cadastro() {
                                     />
                                 </div>
                                 <div className="md:col-span-6">
-                                    <label className="block text-sm text-gray-700 mb-1 ml-1">Bairro</label>
+                                    <label className="block text-sm text-gray-700 mb-1 ml-1 font-semibold">Bairro</label>
                                     <input
                                         type="text"
                                         className="w-full border border-black rounded-[10px] p-2 bg-white outline-none h-[45px]"
@@ -203,7 +205,7 @@ export default function Cadastro() {
                                     />
                                 </div>
                                 <div className="md:col-span-3">
-                                    <label className="block text-sm text-gray-700 mb-1 ml-1">Número</label>
+                                    <label className="block text-sm text-gray-700 mb-1 ml-1 font-semibold">Número</label>
                                     <input
                                         type="text"
                                         className="w-full border border-black rounded-[10px] p-2 bg-white outline-none h-[45px]"
@@ -217,7 +219,7 @@ export default function Cadastro() {
 
                             <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                                 <div className="md:col-span-4">
-                                    <label className="block text-sm text-gray-700 mb-1 ml-1">Complemento</label>
+                                    <label className="block text-sm text-gray-700 mb-1 ml-1 font-semibold">Complemento</label>
                                     <input
                                         type="text"
                                         className="w-full border border-black rounded-[10px] p-2 bg-white outline-none h-[45px]"
@@ -225,16 +227,14 @@ export default function Cadastro() {
                                         onChange={e => setFormData({...formData, complemento: e.target.value})}
                                     />
                                 </div>
-                                {/* CAMPO DE COORDENADAS (AGORA EDITÁVEL) */}
                                 <div className="md:col-span-8">
-                                    <label className="block text-sm text-gray-700 mb-1 ml-1">Coordenadas (Lat, Long)</label>
+                                    <label className="block text-sm text-gray-700 mb-1 ml-1 font-semibold">Coordenadas (Lat, Long)</label>
                                     <input
                                         type="text"
-                                        // Mudamos a cor de fundo para branco para mostrar que pode editar
                                         className="w-full border border-black rounded-[10px] p-2 bg-white outline-none h-[45px] text-gray-700 font-mono text-xs md:text-sm font-bold focus:border-blue-600 transition"
                                         value={coordInput}
-                                        onChange={e => setCoordInput(e.target.value)} // Permite digitar
-                                        onBlur={handleCoordBlur} // Salva no estado real quando sair do campo
+                                        onChange={e => setCoordInput(e.target.value)}
+                                        onBlur={handleCoordBlur}
                                         placeholder="Ex: -19.9208, -43.9378"
                                     />
                                 </div>
@@ -242,14 +242,16 @@ export default function Cadastro() {
                         </div>
                     </div>
 
+                    {/* SEÇÃO 2: ITEM */}
                     <div className="mb-10">
                         <h2 className="text-sm font-bold text-gray-800 uppercase border-b border-black pb-1 mb-4 w-full">
-                            INFORMAÇÕES GERAIS DO ITEM
+                            Informações Gerais do Item
                         </h2>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-[600px]">
+                        {/* No mobile ocupa full width, no desktop max-w-600 */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-8 w-full md:max-w-[600px]">
                             <div>
-                                <label className="block text-sm text-gray-700 mb-1 ml-1">Peso (Máx 12kg)</label>
+                                <label className="block text-sm text-gray-700 mb-1 ml-1 font-semibold">Peso (Máx 12kg)</label>
                                 <div className="relative">
                                     <input
                                         type="number"
@@ -261,7 +263,7 @@ export default function Cadastro() {
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm text-gray-700 mb-1 ml-1">Prioridade</label>
+                                <label className="block text-sm text-gray-700 mb-1 ml-1 font-semibold">Prioridade</label>
                                 <select
                                     className="w-full border border-black rounded-[10px] p-2 bg-white outline-none h-[45px] cursor-pointer"
                                     value={formData.prioridade}
@@ -274,15 +276,16 @@ export default function Cadastro() {
                         </div>
                     </div>
 
-                    <div className="flex justify-end gap-4">
+                    {/* BOTÕES: Flex-col no mobile (um embaixo do outro), Row no desktop */}
+                    <div className="flex flex-col-reverse md:flex-row justify-end gap-3 md:gap-4">
                         <button
                             onClick={() => navigate('/')}
-                            className="bg-[#ef4444] hover:bg-red-600 text-black border border-black px-6 py-2 rounded-[10px] font-medium transition shadow-sm w-full md:w-auto">
+                            className="w-full md:w-auto bg-[#ef4444] hover:bg-red-600 text-black border border-black px-6 py-3 md:py-2 rounded-[10px] font-medium transition shadow-sm active:scale-95">
                             Cancelar
                         </button>
                         <button
                             onClick={handleSubmit}
-                            className="bg-[#22c55e] hover:bg-green-600 text-black border border-black px-6 py-2 rounded-[10px] font-medium transition shadow-sm w-full md:w-auto">
+                            className="w-full md:w-auto bg-[#22c55e] hover:bg-green-600 text-black border border-black px-6 py-3 md:py-2 rounded-[10px] font-medium transition shadow-sm active:scale-95">
                             Adicionar Pedido
                         </button>
                     </div>
